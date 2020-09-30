@@ -13,7 +13,7 @@ LIB = request
 SRCS = $(wildcard $(SRC_DIR)/*.c)
 OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
 RM = /bin/rm
-CFLAGS = -I$(INC_DIR) -g
+CFLAGS = -I$(INC_DIR) -I$(LIB_DIR) -g
 LIBFLAGS = -L$(LIB_DIR) -l$(LIB) 
 
 #all: $(PROG)
