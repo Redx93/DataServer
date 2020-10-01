@@ -3,11 +3,24 @@
 #include <string.h>
 
 #include "listen.h"
+#include "db_engine.h"
 
 #define HELP_TEXT "-h \"prints help message\"\n -p <port number> \"sets the server to listen to port number for connections\""
 
 int main(int argc, char* argv[]) {
     int port = 9999;
+
+    initDB();
+    if (argc >= 2) {
+        request_t* request = parse_request(argv[1], NULL);
+        print_request(request);
+        switch(request->request_type) {
+            case RT_CREATE: {
+                createTable(request);
+            } break;
+        }
+    }
+    exit(0);
 
     // Handle command line arguments
     for (int i = 1; i < argc; i++) {
@@ -27,7 +40,7 @@ int main(int argc, char* argv[]) {
             if (port < 1000) {
                 fprintf(stderr, "Invalid port number\n");
                 exit(1);
-            }           
+            }
         }
         else if (!strcmp(arg, "-h")) {
             printf("%s", HELP_TEXT);
@@ -35,6 +48,6 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    listen(port);
+    //listenPort(port);
 }
 

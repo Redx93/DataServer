@@ -1,6 +1,6 @@
 #ifndef LISTEN_H
 #define LISTEN_H
 
-int listen(int port);
+int listenPort(int port);
 
 #endif
