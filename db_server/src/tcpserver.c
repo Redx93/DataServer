@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 
 #define PORT 8080
-
+#define BUFFERSIZE 1024
 int main(){
 
 	int sockfd, ret;
@@ -19,15 +19,15 @@ int main(){
 
 	socklen_t addr_size;
     
-	char buffer[1024];
+	char buffer[BUFFERSIZE];
 	pid_t childpid;
-
+	
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(sockfd < 0){
-		printf("[-]Error in connection.\n");
+		printf("Error in connection.\n");
 		exit(1);
 	}
-	printf("[+]Server Socket is created.\n");
+	printf("Server Socket is created.\n");
 
 	memset(&serverAddr, '\0', sizeof(serverAddr));
 	serverAddr.sin_family = AF_INET;
@@ -36,17 +36,18 @@ int main(){
 
 	ret = bind(sockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
 	if(ret < 0){
-		printf("[-]Error in binding.\n");
+		printf("Error in binding.\n");
 		exit(1);
 	}
-	printf("[+]Bind to port %d\n", 4444);
+	printf("Bind to port %d\n", PORT);
 
 	if(listen(sockfd, 10) == 0){
-		printf("[+]Listening....\n");
+		printf("Listening....\n");
 	}else{
-		printf("[-]Error in binding.\n");
+		printf("Error in binding.\n");
 	}
 
+	char buf2[BUFFERSIZE];
 
 	while(1){
 		newSocket = accept(sockfd, (struct sockaddr*)&newAddr, &addr_size);
@@ -54,27 +55,28 @@ int main(){
 			exit(1);
 		}
 		printf("Connection accepted from %s:%d\n", inet_ntoa(newAddr.sin_addr), ntohs(newAddr.sin_port));
-
+		
 		if((childpid = fork()) == 0){
 			close(sockfd);
 
 			while(1){
 				recv(newSocket, buffer, sizeof(buffer), 0);
-				if(strcmp(buffer, ":exit") == 0){
+				
+				if(strcmp(buffer, "exit") == 0){
 					printf("Disconnected from %s:%d\n", inet_ntoa(newAddr.sin_addr), ntohs(newAddr.sin_port));
 					break;
-				}else{
+				}
+				else
+				{
 					printf("Client: %s\n", buffer);
-
-                    if(buffer == "hej")
-                    {
-                        char buffer2[1024] = "du skrev hej";
-
-                        send(newSocket,buffer2,strlen(buffer2),0);
-                    }
+					//fget(buf2, 1024-1,stdin);
+                    send(newSocket,buffer,strlen(buffer),0);
 					//send(newSocket, buffer, strlen(buffer), 0);
 					bzero(buffer, sizeof(buffer));
 				}
+				
+				
+			
 			}
 		}
 
