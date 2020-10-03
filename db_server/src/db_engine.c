@@ -98,26 +98,30 @@ int deleteTable(request_t* req) {
 }
 
 int listTables(request_t* req) {
-    // DIR *dp;
-    // struct dirent *ep;
+    DIR *dp;
+    struct dirent *ep;
 
-    // dp = opendir ("./");
-    // if (dp != NULL) {
-    //     const char delim[] = ".";
-    //     char* 
-    //     while (ep = readdir(dp)) {
-
-    //         puts(ep->d_name);
-    //     }
-    //     closedir(dp);
-    // }
-    // else {
-    //     perror("Couldn't open the directory");
-    // }
+    dp = opendir ("./");
+    if (dp != NULL) {
+        char temp[256];
+        
+        while (ep = readdir(dp)) {
+            char* end = strstr(ep->d_name, TABLE_FILE_END);
+            if (end != NULL) {
+                memset(temp, 0, 256);
+                strncpy(temp, ep->d_name, end - ep->d_name);
+                puts(temp);
+            }
+        }
+        closedir(dp);
+    }
+    else {
+        perror("Couldn't open the directory");
+    }
 }
 
-int listSchemas(request_t* req) {
-
+int printSchema(request_t* req) {
+    
 }
 
 int insertRecord(request_t* req) {

@@ -18,6 +18,12 @@ int main(int argc, char* argv[]) {
             case RT_CREATE: {
                 createTable(request);
             } break;
+            case RT_TABLES: {
+                listTables(request);
+            } break;
+            case RT_SCHEMA: {
+                listSchemas(request);
+            } break;
         }
     }
     exit(0);
