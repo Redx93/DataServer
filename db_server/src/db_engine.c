@@ -7,6 +7,16 @@
 
 #include "db_engine.h"
 
+/*
+    .schema format
+    COL_NAME0 COL_TYPE0 COL_MOD0
+    COL_NAME1 COL_TYPE1 COL_MOD1
+    COL_NAME2 COL_TYPE2 COL_MOD2
+
+    COL_MOD for INT is 1 if it is primary key and 0 if not
+    COL_MOD for VARCHAR is length
+*/
+const char* const SCHEMA_FORMAT = "%s %i %i\n";
 const char* const SCHEMA_FILE_END = ".schema";
 const char* const TABLE_FILE_END = ".table";
 const char* const DB_PATH = "../database/";
@@ -44,23 +54,13 @@ int createTable(request_t* req) {
         return -1;
     }
     else {
-        /*
-            .schema format
-            COL_NAME0 COL_TYPE0 COL_MOD0
-            COL_NAME1 COL_TYPE1 COL_MOD1
-            COL_NAME2 COL_TYPE2 COL_MOD2
-
-            COL_MOD for INT is 1 if it is primary key and 0 if not
-            COL_MOD for VARCHAR is length
-        */
-
         column_t* col = req->columns;
         while (col != NULL) {
             if (col->data_type == DT_INT) {
-                fprintf(fd, "%s %i %i\n", col->name, col->data_type, col->is_primary_key);
+                fprintf(fd, SCHEMA_FORMAT, col->name, col->data_type, col->is_primary_key);
             }
             else {
-                fprintf(fd, "%s %i %i\n", col->name, col->data_type, col->char_size);
+                fprintf(fd, SCHEMA_FORMAT, col->name, col->data_type, col->char_size);
             }
             
             col = col->next;
@@ -121,7 +121,32 @@ int listTables(request_t* req) {
 }
 
 int printSchema(request_t* req) {
-    
+    char name[256];
+    memset(name, 0, 256);
+    strcat(name, req->table_name);
+    strcat(name, SCHEMA_FILE_END);
+    FILE* fd = fopen(name, "r");
+    if (fd == NULL) {
+        perror("Failed to open schema file");
+        return -1;
+    }
+
+    //schema format: COL_NAME COL_TYPE COL_MOD
+    memset(name, 0, 256); // reuse name buffer
+    int type;
+    int mod;
+    int matchedValues = 0;
+    while (matchedValues = fscanf(fd, SCHEMA_FORMAT, &name, &type, &mod) == 3) {
+        if (type == DT_INT) {
+            printf("%-30s INT\n", name);
+        }
+        else {
+            printf("%-30s VARCHAR(%i)\n", name, mod);
+        }
+        
+    }
+
+    fclose(fd);
 }
 
 int insertRecord(request_t* req) {

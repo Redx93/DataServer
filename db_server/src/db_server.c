@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
                 listTables(request);
             } break;
             case RT_SCHEMA: {
-                listSchemas(request);
+                printSchema(request);
             } break;
         }
     }
