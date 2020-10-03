@@ -10,7 +10,6 @@
 const char* const SCHEMA_FILE_END = ".schema";
 const char* const TABLE_FILE_END = ".table";
 const char* const DB_PATH = "../database/";
-const char* const FOPEN_MODE = "w";
 
 int initDB() {
     if (chdir(DB_PATH) != 0) {
@@ -39,7 +38,7 @@ int createTable(request_t* req) {
     char tableFileName[bufferSize];
     makeTableFileNames(req, schemaFileName, tableFileName);
     
-    FILE* fd = fopen(schemaFileName, FOPEN_MODE);
+    FILE* fd = fopen(schemaFileName, "w");
     if (fd == NULL) {
         perror("Couldn't create schema file");
         return -1;
@@ -47,9 +46,9 @@ int createTable(request_t* req) {
     else {
         /*
             .schema format
-            COL_NAME0 COL_NAME1 COL_NAME2
-            COL_TYPE0 COL_TYPE1 COL_TYPE2
-            COL_MOD0  COL_MOD1  COL_MOD2
+            COL_NAME0 COL_TYPE0 COL_MOD0
+            COL_NAME1 COL_TYPE1 COL_MOD1
+            COL_NAME2 COL_TYPE2 COL_MOD2
 
             COL_MOD for INT is 1 if it is primary key and 0 if not
             COL_MOD for VARCHAR is length
@@ -57,33 +56,20 @@ int createTable(request_t* req) {
 
         column_t* col = req->columns;
         while (col != NULL) {
-            fprintf(fd, "%s ", col->name);
-            col = col->next;
-        }
-        fprintf(fd, "\n");
-
-        col = req->columns;
-        while (col != NULL) {
-            fprintf(fd, "%i ", col->data_type);
-            col = col->next;
-        }
-        fprintf(fd, "\n");
-        
-        col = req->columns;
-        while (col != NULL) {
             if (col->data_type == DT_INT) {
-                fprintf(fd, "%i ", col->is_primary_key);
+                fprintf(fd, "%s %i %i\n", col->name, col->data_type, col->is_primary_key);
             }
             else {
-                fprintf(fd, "%i ", col->char_size);
+                fprintf(fd, "%s %i %i\n", col->name, col->data_type, col->char_size);
             }
+            
             col = col->next;
         }
-        fprintf(fd, "\n");
+
         fclose(fd);
     }
 
-    fd = fopen(tableFileName, FOPEN_MODE);
+    fd = fopen(tableFileName, "wb");
     if (fd == NULL) {
         perror("Couldn't create table file");
         return -1;
@@ -112,7 +98,22 @@ int deleteTable(request_t* req) {
 }
 
 int listTables(request_t* req) {
+    // DIR *dp;
+    // struct dirent *ep;
 
+    // dp = opendir ("./");
+    // if (dp != NULL) {
+    //     const char delim[] = ".";
+    //     char* 
+    //     while (ep = readdir(dp)) {
+
+    //         puts(ep->d_name);
+    //     }
+    //     closedir(dp);
+    // }
+    // else {
+    //     perror("Couldn't open the directory");
+    // }
 }
 
 int listSchemas(request_t* req) {
