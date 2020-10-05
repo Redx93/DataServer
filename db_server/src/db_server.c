@@ -24,6 +24,9 @@ int main(int argc, char* argv[]) {
             case RT_SCHEMA: {
                 printSchema(request);
             } break;
+            case RT_INSERT: {
+                insertRecord(request);
+            }
         }
     }
     exit(0);

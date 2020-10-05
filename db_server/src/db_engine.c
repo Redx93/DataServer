@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
@@ -32,21 +33,28 @@ void exitDB() {
 
 }
 
-int makeTableFileNames(request_t* req, char* schemaFileName, char* tableFileName) {
+int makeTableFileName(const request_t* req, char* tableFileName) {
+    memset(tableFileName, 0, sizeof(tableFileName));
+    strcat(tableFileName, req->table_name);
+    strcat(tableFileName, TABLE_FILE_END);
+
+    return strlen(tableFileName);
+}
+
+int makeSchemaFileName(const request_t* req, char* schemaFileName) {
     memset(schemaFileName, 0, sizeof(schemaFileName));
     strcat(schemaFileName, req->table_name);
     strcat(schemaFileName, SCHEMA_FILE_END);
 
-    memset(tableFileName, 0, sizeof(tableFileName));
-    strcat(tableFileName, req->table_name);
-    strcat(tableFileName, TABLE_FILE_END);
+    return strlen(schemaFileName);
 }
 
-int createTable(request_t* req) {
+int createTable(const request_t* req) {
     const int bufferSize = 128;
     char schemaFileName[bufferSize];
     char tableFileName[bufferSize];
-    makeTableFileNames(req, schemaFileName, tableFileName);
+    makeSchemaFileName(req, schemaFileName);
+    makeTableFileName(req, tableFileName);
     
     FILE* fd = fopen(schemaFileName, "w");
     if (fd == NULL) {
@@ -69,7 +77,7 @@ int createTable(request_t* req) {
         fclose(fd);
     }
 
-    fd = fopen(tableFileName, "wb");
+    fd = fopen(tableFileName, "w");
     if (fd == NULL) {
         perror("Couldn't create table file");
         return -1;
@@ -79,11 +87,13 @@ int createTable(request_t* req) {
     return 0;
 }
 
-int deleteTable(request_t* req) {
+int deleteTable(const request_t* req) {
     const int bufferSize = 256;
     char schemaFileName[bufferSize];
     char tableFileName[bufferSize];
-    makeTableFileNames(req, schemaFileName, tableFileName);
+    makeSchemaFileName(req, schemaFileName);
+    makeTableFileName(req, tableFileName);
+
     if (unlink(schemaFileName)) {
         perror("Couldn't delete schema file");
         return -1;
@@ -97,7 +107,7 @@ int deleteTable(request_t* req) {
     return 0;
 }
 
-int listTables(request_t* req) {
+int listTables(const request_t* req) {
     DIR *dp;
     struct dirent *ep;
 
@@ -120,23 +130,20 @@ int listTables(request_t* req) {
     }
 }
 
-int printSchema(request_t* req) {
+int printSchema(const request_t* req) {
     char name[256];
-    memset(name, 0, 256);
-    strcat(name, req->table_name);
-    strcat(name, SCHEMA_FILE_END);
+    makeSchemaFileName(req, name);
+
     FILE* fd = fopen(name, "r");
     if (fd == NULL) {
         perror("Failed to open schema file");
         return -1;
     }
 
-    //schema format: COL_NAME COL_TYPE COL_MOD
     memset(name, 0, 256); // reuse name buffer
     int type;
     int mod;
-    int matchedValues = 0;
-    while (matchedValues = fscanf(fd, SCHEMA_FORMAT, &name, &type, &mod) == 3) {
+    while (fscanf(fd, SCHEMA_FORMAT, &name, &type, &mod) == 3) {
         if (type == DT_INT) {
             printf("%-30s INT\n", name);
         }
@@ -149,6 +156,88 @@ int printSchema(request_t* req) {
     fclose(fd);
 }
 
-int insertRecord(request_t* req) {
+int insertRecord(const request_t* req) {
+    char schemaFileName[256];
+    char tableFileName[256];
+    makeSchemaFileName(req, schemaFileName);
+    makeTableFileName(req, tableFileName);
+    FILE* fd = fopen(schemaFileName, "r");
+    if (fd == NULL) {
+        perror("Couldn't open schema file");
+        return -1;
+    }
 
+    // get schema format info
+    column_t* schemaCol = malloc(sizeof(column_t));
+    memset(schemaCol, 0, sizeof(column_t));
+    column_t* currentSchemaCol = schemaCol;
+
+    char name[256];
+    int type;
+    int mod;
+    while (fscanf(fd, SCHEMA_FORMAT, &name, &type, &mod) == 3) {
+        currentSchemaCol->name = malloc(strlen(name) + 1);
+        strcpy(currentSchemaCol->name, name);
+        if (type == DT_INT) {
+            currentSchemaCol->data_type = type;
+            currentSchemaCol->is_primary_key = mod;
+        }
+        else {
+            currentSchemaCol->data_type = type;
+            currentSchemaCol->char_size = mod;
+        }
+        currentSchemaCol->next = malloc(sizeof(column_t));
+        memset(currentSchemaCol->next, 0, sizeof(column_t));
+        currentSchemaCol = currentSchemaCol->next;
+        currentSchemaCol->next = NULL;
+    }
+    fclose(fd);
+
+    // write data
+    fd = fopen(tableFileName, "a");
+    if (fd == NULL) {
+        perror("Couldn't open table file");
+        return -1;
+    }
+
+    column_t* reqCol = req->columns;
+    currentSchemaCol = schemaCol;
+    char row[512];
+    char* rowEnd = row;
+    memset(row, 0, 512);
+    while (reqCol != NULL) {
+        if (currentSchemaCol->data_type != reqCol->data_type) {
+            perror("Wrong format for insert");
+            return -1;
+        }
+        
+        if (reqCol->data_type == DT_INT) {
+            rowEnd += sprintf(rowEnd, "%i ", reqCol->int_val);
+        }
+        else {
+            char record[128] = { 0 };
+            
+            for (int i = 0; reqCol->char_val[i + 1] != '\''; i++) {
+                record[i] = reqCol->char_val[i + 1];
+            }
+            rowEnd += snprintf(rowEnd, currentSchemaCol->char_size + 1, "%s ", record);
+        }
+
+        reqCol = reqCol->next;
+        currentSchemaCol = currentSchemaCol->next;
+    }
+    
+    fprintf(fd, "%s\n", row);
+    fclose(fd);
+
+    // clean up schema format info
+    while (schemaCol != NULL)
+    {
+        column_t* next = schemaCol->next;
+        if (schemaCol->name != NULL) {
+            free(schemaCol->name);
+        }
+        free(schemaCol);
+        schemaCol = next;
+    }
 }

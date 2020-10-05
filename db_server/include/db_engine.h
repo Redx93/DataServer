@@ -6,10 +6,10 @@
 int initDB();
 void exitDB();
 
-int createTable(request_t*);
-int deleteTable(request_t*);
-int listTables(request_t*);
-int printSchema(request_t*);
-int insertRecord(request_t*);
+int createTable(const request_t*);
+int deleteTable(const request_t*);
+int listTables(const request_t*);
+int printSchema(const request_t*);
+int insertRecord(const request_t*);
 
 #endif
