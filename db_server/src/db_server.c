@@ -26,7 +26,12 @@ int main(int argc, char* argv[]) {
             } break;
             case RT_INSERT: {
                 insertRecord(request);
-            }
+            } break;
+            case RT_SELECT: {
+                char* select = selectRecord(request);
+                printf("%s", select);
+                free(select);
+            } break;
         }
     }
     exit(0);

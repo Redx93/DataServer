@@ -241,3 +241,29 @@ int insertRecord(const request_t* req) {
         schemaCol = next;
     }
 }
+
+char* selectRecord(const request_t* req) {
+    char tableFileName[256];
+    makeTableFileName(req, tableFileName);
+    FILE* fd = fopen(tableFileName, "r");
+    if (fd == NULL) {
+        perror("Couldn't open table file");
+    }
+    
+    fseek(fd, 0, SEEK_END);
+    long fileLength = ftell(fd);
+    char* returnString = malloc(fileLength + 1);
+    memset(returnString, 0, fileLength + 1);
+    fseek(fd, 0, SEEK_SET);
+    
+    if (req->columns == NULL) {
+        // select all
+        fread(returnString, 1, fileLength, fd);
+    }
+    else {
+        perror("Feature not supported yet");
+    }
+    fclose(fd);
+
+    return returnString;
+}
