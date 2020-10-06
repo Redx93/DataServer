@@ -130,30 +130,35 @@ int listTables(const request_t* req) {
     }
 }
 
-int printSchema(const request_t* req) {
+char* getSchemaString(const request_t* req) {
     char name[256];
     makeSchemaFileName(req, name);
 
     FILE* fd = fopen(name, "r");
     if (fd == NULL) {
         perror("Failed to open schema file");
-        return -1;
+        return NULL;
     }
+
+    char* returnString = malloc(1024);
+    int offset = 0;
 
     memset(name, 0, 256); // reuse name buffer
     int type;
     int mod;
     while (fscanf(fd, SCHEMA_FORMAT, &name, &type, &mod) == 3) {
         if (type == DT_INT) {
-            printf("%-30s INT\n", name);
+            offset += sprintf(returnString + offset, "%-30s INT\n", name);
         }
         else {
-            printf("%-30s VARCHAR(%i)\n", name, mod);
+            offset += sprintf(returnString + offset, "%-30s VARCHAR(%i)\n", name, mod);
         }
         
     }
 
     fclose(fd);
+    
+    return returnString;
 }
 
 int insertRecord(const request_t* req) {

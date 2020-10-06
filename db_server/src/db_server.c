@@ -22,7 +22,9 @@ int main(int argc, char* argv[]) {
                 listTables(request);
             } break;
             case RT_SCHEMA: {
-                printSchema(request);
+                char* schema = getSchemaString(request);
+                printf("%s", schema);
+                free(schema);
             } break;
             case RT_INSERT: {
                 insertRecord(request);
