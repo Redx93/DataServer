@@ -6,10 +6,11 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "request.h"
+#include "db_engine.h"
 
-#define PORT 8080
 #define BUFFERSIZE 1024
-int main(){
+int listenPort(int port){
 
 	int sockfd, ret;
 	 struct sockaddr_in serverAddr;
@@ -31,7 +32,7 @@ int main(){
 
 	memset(&serverAddr, '\0', sizeof(serverAddr));
 	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(PORT);
+	serverAddr.sin_port = htons(port);
 	serverAddr.sin_addr.s_addr = INADDR_ANY;
 
 	ret = bind(sockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
@@ -39,7 +40,7 @@ int main(){
 		printf("Error in binding.\n");
 		exit(1);
 	}
-	printf("Bind to port %d\n", PORT);
+	printf("Bind to port %d\n", port);
 
 	if(listen(sockfd, 10) == 0){
 		printf("Listening....\n");
@@ -68,10 +69,30 @@ int main(){
 				}
 				else
 				{
-					printf("Client: %s\n", buffer);
-					//fget(buf2, 1024-1,stdin);
-                    send(newSocket,buffer,strlen(buffer),0);
-					//send(newSocket, buffer, strlen(buffer), 0);
+					request_t* request = parse_request(buffer, NULL);
+					print_request(request);
+					switch(request->request_type) 
+					{
+						case RT_CREATE: {
+							createTable(request);
+						} break;
+						case RT_TABLES: {
+							listTables(request);
+						} break;
+						case RT_SCHEMA: {
+							char* schema = getSchemaString(request);
+							send(newSocket,schema,strlen(schema),0);
+							free(schema);
+						} break;
+						case RT_INSERT: {
+							insertRecord(request);
+						} break;
+						case RT_SELECT: {
+							char* select = selectRecord(request);
+							send(newSocket,select,strlen(select),0);
+							free(select);
+						} break;
+					}
 					bzero(buffer, sizeof(buffer));
 				}
 				

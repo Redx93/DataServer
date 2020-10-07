@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "listen.h"
 #include "db_engine.h"
+#include "tcpserver.h"
 
 #define HELP_TEXT "-h \"prints help message\"\n -p <port number> \"sets the server to listen to port number for connections\""
 
@@ -11,32 +11,7 @@ int main(int argc, char* argv[]) {
     int port = 9999;
 
     initDB();
-    if (argc >= 2) {
-        request_t* request = parse_request(argv[1], NULL);
-        print_request(request);
-        switch(request->request_type) {
-            case RT_CREATE: {
-                createTable(request);
-            } break;
-            case RT_TABLES: {
-                listTables(request);
-            } break;
-            case RT_SCHEMA: {
-                char* schema = getSchemaString(request);
-                printf("%s", schema);
-                free(schema);
-            } break;
-            case RT_INSERT: {
-                insertRecord(request);
-            } break;
-            case RT_SELECT: {
-                char* select = selectRecord(request);
-                printf("%s", select);
-                free(select);
-            } break;
-        }
-    }
-    exit(0);
+    
 
     // Handle command line arguments
     for (int i = 1; i < argc; i++) {
@@ -64,6 +39,6 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    //listenPort(port);
+    listenPort(port);
 }
 
