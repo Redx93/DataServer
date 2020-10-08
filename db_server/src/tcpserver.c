@@ -77,11 +77,13 @@ int listenPort(int port){
 							createTable(request);
 						} break;
 						case RT_TABLES: {
-							listTables(request);
+							char* tables = listTables(request);
+							send(newSocket, tables, strlen(tables), 0);
+							free(tables);
 						} break;
 						case RT_SCHEMA: {
 							char* schema = getSchemaString(request);
-							send(newSocket,schema,strlen(schema),0);
+							send(newSocket, schema, strlen(schema), 0);
 							free(schema);
 						} break;
 						case RT_INSERT: {
@@ -89,22 +91,17 @@ int listenPort(int port){
 						} break;
 						case RT_SELECT: {
 							char* select = selectRecord(request);
-							send(newSocket,select,strlen(select),0);
+							send(newSocket, select, strlen(select), 0);
 							free(select);
 						} break;
 					}
 					bzero(buffer, sizeof(buffer));
 				}
-				
-				
-			
 			}
 		}
-
 	}
 
 	close(newSocket);
-
 
 	return 0;
 }

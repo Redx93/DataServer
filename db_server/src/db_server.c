@@ -11,7 +11,6 @@ int main(int argc, char* argv[]) {
     int port = 9999;
 
     initDB();
-    
 
     // Handle command line arguments
     for (int i = 1; i < argc; i++) {

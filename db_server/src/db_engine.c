@@ -107,23 +107,25 @@ int deleteTable(const request_t* req) {
     return 0;
 }
 
-int listTables(const request_t* req) {
+char* listTables(const request_t* req) {
     DIR *dp;
     struct dirent *ep;
-
+    char* returnString = malloc(512);
+    char* returnStringEnd = returnString;
     dp = opendir ("./");
     if (dp != NULL) {
-        char temp[256];
-        
         while (ep = readdir(dp)) {
             char* end = strstr(ep->d_name, TABLE_FILE_END);
             if (end != NULL) {
-                memset(temp, 0, 256);
-                strncpy(temp, ep->d_name, end - ep->d_name);
-                puts(temp);
+                strncpy(returnStringEnd, ep->d_name, end - ep->d_name);
+                returnStringEnd += end - ep->d_name;
             }
         }
         closedir(dp);
+        *(returnStringEnd++) = '\n';
+        *returnStringEnd = 0;
+
+        return returnString;
     }
     else {
         perror("Couldn't open the directory");
