@@ -20,7 +20,6 @@ int listenPort(int port){
 
 	socklen_t addr_size;
     
-	char buffer[BUFFERSIZE];
 	pid_t childpid;
 	
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -57,51 +56,66 @@ int listenPort(int port){
 		}
 		printf("Connection accepted from %s:%d\n", inet_ntoa(newAddr.sin_addr), ntohs(newAddr.sin_port));
 		
-		if((childpid = fork()) == 0){
+		if ((childpid = fork()) == 0){
 			close(sockfd);
-
-			while(1){
+			char buffer[BUFFERSIZE];
+			bzero(buffer, BUFFERSIZE);
+			int connected = 1;
+			while (connected) {
+				bzero(buffer, sizeof(buffer));
 				recv(newSocket, buffer, sizeof(buffer), 0);
-				
-				if(strcmp(buffer, "exit") == 0){
-					printf("Disconnected from %s:%d\n", inet_ntoa(newAddr.sin_addr), ntohs(newAddr.sin_port));
-					break;
+
+				char* errorbuffer;
+				request_t* request = parse_request(buffer, &errorbuffer);
+
+				if (request == NULL) {
+					errorbuffer[strlen(errorbuffer)] = '\n';
+					printf("%s", errorbuffer);
+					send(newSocket, errorbuffer, strlen(errorbuffer), 0);
+					free(errorbuffer);
+					continue;
 				}
-				else
+
+				print_request(request);
+
+				switch(request->request_type) 
 				{
-					request_t* request = parse_request(buffer, NULL);
-					print_request(request);
-					switch(request->request_type) 
-					{
-						case RT_CREATE: {
-							createTable(request);
-						} break;
-						case RT_TABLES: {
-							char* tables = listTables(request);
-							send(newSocket, tables, strlen(tables), 0);
-							free(tables);
-						} break;
-						case RT_SCHEMA: {
-							char* schema = getSchemaString(request);
-							send(newSocket, schema, strlen(schema), 0);
-							free(schema);
-						} break;
-						case RT_INSERT: {
-							insertRecord(request);
-						} break;
-						case RT_SELECT: {
-							char* select = selectRecord(request);
-							send(newSocket, select, strlen(select), 0);
-							free(select);
-						} break;
-					}
-					bzero(buffer, sizeof(buffer));
+					case RT_CREATE: {
+						createTable(request);
+					} break;
+					case RT_TABLES: {
+						char* tables = listTables(request);
+						send(newSocket, tables, strlen(tables), 0);
+						free(tables);
+					} break;
+					case RT_SCHEMA: {
+						char* schema = getSchemaString(request);
+						send(newSocket, schema, strlen(schema), 0);
+						free(schema);
+					} break;
+					case RT_INSERT: {
+						insertRecord(request);
+					} break;
+					case RT_SELECT: {
+						char* select = selectRecord(request);
+						send(newSocket, select, strlen(select), 0);
+						free(select);
+					} break;
+					case RT_QUIT: {
+						connected = 0;
+					} break;
+					default: {
+						printf("request %i not supported\n", request->request_type);
+					} break;
 				}
+
+				destroy_request(request);
 			}
+
+			close(newSocket);
+			return 0;
 		}
 	}
-
-	close(newSocket);
 
 	return 0;
 }
