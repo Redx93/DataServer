@@ -1,7 +1,6 @@
 CC = gcc
 LD = gcc
 
-
 SRC_DIR = src
 INC_DIR = include
 OBJ_DIR = objects
@@ -16,13 +15,8 @@ RM = /bin/rm
 CFLAGS = -I$(INC_DIR) -I$(LIB_DIR) -g
 LIBFLAGS = -L$(LIB_DIR) -l$(LIB) 
 
-#all: $(PROG)
-
 $(PROG): $(OBJS)
 	$(LD) -o $@ $^ $(CFLAGS) $(LIBFLAGS)
-
-#$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-#	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) -c -o $@ $< $(CFLAGS)
