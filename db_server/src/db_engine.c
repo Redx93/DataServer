@@ -29,8 +29,15 @@ int initDB() {
     }
 }
 
-void exitDB() {
+/* type is one of F_RDLCK, F_WRLCK or F_UNLCK */
+int fileLock(FILE* fd, int type) {
+    struct flock lock;
+    lock.l_type = type;
+    lock.l_start = 0;
+    lock.l_whence = SEEK_SET;
+    lock.l_len = 0;
 
+    return fcntl((int)fd, F_SETLKW, &lock);
 }
 
 int makeTableFileName(const request_t* req, char* tableFileName) {
@@ -62,6 +69,7 @@ int createTable(const request_t* req) {
         return -1;
     }
     else {
+        fileLock(fd, F_WRLCK);
         column_t* col = req->columns;
         while (col != NULL) {
             if (col->data_type == DT_INT) {
@@ -73,7 +81,7 @@ int createTable(const request_t* req) {
             
             col = col->next;
         }
-
+        fileLock(fd, F_UNLCK);
         fclose(fd);
     }
 
@@ -94,15 +102,23 @@ int deleteTable(const request_t* req) {
     makeSchemaFileName(req, schemaFileName);
     makeTableFileName(req, tableFileName);
 
+    FILE* fd = fopen(schemaFileName, "r");
+    fileLock(fd, F_RDLCK);
+
     if (unlink(schemaFileName)) {
         perror("Couldn't delete schema file");
         return -1;
     }
+    fclose(fd);
+    
+    fd = fopen(tableFileName, "r");
+    fileLock(fd, F_RDLCK);
 
     if (unlink(tableFileName)) {
         perror("Couldn't delete table file");
         return -1;
     }
+    fclose(fd);
 
     return 0;
 }
@@ -141,6 +157,7 @@ char* getSchemaString(const request_t* req) {
         perror("Failed to open schema file");
         return NULL;
     }
+    fileLock(fd, F_RDLCK);
 
     char* returnString = malloc(1024);
     int offset = 0;
@@ -157,7 +174,7 @@ char* getSchemaString(const request_t* req) {
         }
         
     }
-
+    fileLock(fd, F_UNLCK);
     fclose(fd);
     
     return returnString;
@@ -173,6 +190,7 @@ int insertRecord(const request_t* req) {
         perror("Couldn't open schema file");
         return -1;
     }
+    fileLock(fd, F_RDLCK);
 
     // get schema format info
     column_t* schemaCol = malloc(sizeof(column_t));
@@ -198,6 +216,7 @@ int insertRecord(const request_t* req) {
         currentSchemaCol = currentSchemaCol->next;
         currentSchemaCol->next = NULL;
     }
+    fileLock(fd, F_UNLCK);
     fclose(fd);
 
     // write data
@@ -206,7 +225,7 @@ int insertRecord(const request_t* req) {
         perror("Couldn't open table file");
         return -1;
     }
-
+    fileLock(fd, F_WRLCK);
     column_t* reqCol = req->columns;
     currentSchemaCol = schemaCol;
     char row[512];
@@ -235,6 +254,7 @@ int insertRecord(const request_t* req) {
     }
     
     fprintf(fd, "%s\n", row);
+    fileLock(fd, F_UNLCK);
     fclose(fd);
 
     // clean up schema format info
@@ -256,6 +276,7 @@ char* selectRecord(const request_t* req) {
     if (fd == NULL) {
         perror("Couldn't open table file");
     }
+    fileLock(fd, F_RDLCK);
     
     fseek(fd, 0, SEEK_END);
     long fileLength = ftell(fd);
@@ -270,6 +291,7 @@ char* selectRecord(const request_t* req) {
     else {
         perror("Feature not supported yet");
     }
+    fileLock(fd, F_UNLCK);
     fclose(fd);
 
     return returnString;

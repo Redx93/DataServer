@@ -4,8 +4,6 @@
 #include "request.h"
 
 int initDB();
-void exitDB();
-
 int createTable(const request_t*);
 int deleteTable(const request_t*);
 char* listTables(const request_t*);

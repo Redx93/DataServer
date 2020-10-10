@@ -13,7 +13,7 @@
 int listenPort(int port){
 
 	int sockfd, ret;
-	 struct sockaddr_in serverAddr;
+	struct sockaddr_in serverAddr;
 
 	int newSocket;
 	struct sockaddr_in newAddr;
@@ -82,6 +82,9 @@ int listenPort(int port){
 				{
 					case RT_CREATE: {
 						createTable(request);
+					} break;
+					case RT_DROP: {
+						deleteTable(request);
 					} break;
 					case RT_TABLES: {
 						char* tables = listTables(request);
